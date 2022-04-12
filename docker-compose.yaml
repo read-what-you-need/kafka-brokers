@@ -4,6 +4,7 @@ services:
   zoo:
     image: confluentinc/cp-zookeeper:7.0.1
     hostname: zoo
+    user: "0:0"
     container_name: zoo
     networks:
       - kafka-network
@@ -22,6 +23,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.0.1
     hostname: kafka
+    user: "0:0"
     container_name: kafka
     restart: always
     ports:
@@ -67,17 +69,26 @@ services:
       - kafka
 
   kafka-init-topics:
-      image: confluentinc/cp-kafka:7.0.1
-      depends_on:
-        - kafka
-      networks:
-        - kafka-network
-      command: "bash -c 'echo Waiting for Kafka to be ready... && \
-                cub kafka-ready -b kafka:19092 1 30 && \
-                kafka-topics --create --topic files_job_submit --partitions 6 --replication-factor 2 --if-not-exists --zookeeper zoo:2181 && \
-                kafka-topics --create --topic files_converted_and_uploaded --partitions 4 --replication-factor 2 --if-not-exists --zookeeper zoo:2181 && \
-                kafka-topics --create --topic files_processed --partitions 2 --replication-factor 2 --if-not-exists --zookeeper zoo:2181 && \
-                kafka-topics --create --topic files_to_process --partitions 6 --replication-factor 2 --if-not-exists --zookeeper zoo:2181'"
+    image: confluentinc/cp-kafka:7.0.1
+    depends_on:
+      - kafka
+    networks:
+      - kafka-network
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka:19092 --list
+
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server kafka:19092 --create --if-not-exists --topic  files_job_submit --partitions 2 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:19092 --create --if-not-exists --topic  files_converted_and_uploaded --partitions 4 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:19092 --create --if-not-exists --topic  files_processed --partitions 2 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:19092 --create --if-not-exists --topic  files_to_process --partitions 5 --replication-factor 1
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server kafka:19092 --list
+        "     
 
 networks:
   kafka-network:
