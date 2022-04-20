@@ -5,6 +5,7 @@ services:
     image: confluentinc/cp-zookeeper:7.0.1
     hostname: zoo
     container_name: zoo
+    restart: always
     networks:
       - kafka-network
     ports:
@@ -24,6 +25,7 @@ services:
     ports:
       - "9092:9092"
       - "9999:9999"
+    restart: always
     networks:
       - kafka-network
     environment:
