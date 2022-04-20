@@ -1,4 +1,4 @@
-version: '2.1'
+version: "2.1"
 
 services:
   zoo:
@@ -13,7 +13,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_SERVER_ID: 1
       ZOOKEEPER_SERVERS: zoo:2888:3888
-    volumes: 
+    volumes:
       - ./zoo/data:/var/lib/zookeeper/data
       - ./zoo/log:/var/lib/zookeeper/log
 
@@ -37,7 +37,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-    volumes: 
+    volumes:
       - ./broker/data:/var/lib/kafka/data
     depends_on:
       - zoo
@@ -57,6 +57,19 @@ services:
     depends_on:
       - zoo
       - kafka
+
+  kafka-init-topics:
+      image: confluentinc/cp-kafka:7.0.1
+      depends_on:
+        - kafka
+      networks:
+        - kafka-network
+      command: "bash -c 'echo Waiting for Kafka to be ready... && \
+        cub kafka-ready -b kafka:19092 1 30 && \
+        kafka-topics --create --topic files_job_submit --partitions 6 --replication-factor 2 --if-not-exists --zookeeper zoo:2181 && \
+        kafka-topics --create --topic files_converted_and_uploaded --partitions 4 --replication-factor 2 --if-not-exists --zookeeper zoo:2181 && \
+        kafka-topics --create --topic files_processed --partitions 2 --replication-factor 2 --if-not-exists --zookeeper zoo:2181 && \
+        kafka-topics --create --topic files_to_process --partitions 6 --replication-factor 2 --if-not-exists --zookeeper zoo:2181'"
 
 networks:
   kafka-network:
