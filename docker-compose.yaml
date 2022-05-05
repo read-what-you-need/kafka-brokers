@@ -27,15 +27,18 @@ services:
     restart: always
     ports:
       - "9092:9092"
-      - "9999:9999"
+      - "9010:9010"
     networks:
       - kafka-network
     environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
       KAFKA_ZOOKEEPER_CONNECT: "zoo:2181"
       KAFKA_BROKER_ID: 1
+      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9010"
+      JMX_PORT: 9010
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
@@ -44,18 +47,17 @@ services:
     depends_on:
       - zoo
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui
-    container_name: kafka-ui
+  jmx-kafka101:
+    image: "sscaling/jmx-prometheus-exporter"
+    ports:
+      - "5556:5556"
     networks:
       - kafka-network
-    ports:
-      - "8080:8080"
-    restart: always
     environment:
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:19092
-      - KAFKA_CLUSTERS_0_ZOOKEEPER=zoo:2181
+      CONFIG_YML: "/etc/jmx_exporter/config.yml"
+    volumes:
+      - ./etc/jmx_exporter/config_kafka101.yml:/etc/jmx_exporter/config.yml
+    container_name: jmx-kafka101
     depends_on:
       - zoo
       - kafka
