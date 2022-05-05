@@ -62,22 +62,6 @@ services:
       - zoo
       - kafka
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui
-    container_name: kafka-ui
-    networks:
-      - kafka-network
-    ports:
-      - "8080:8080"
-    restart: always
-    environment:
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:19092
-      - KAFKA_CLUSTERS_0_ZOOKEEPER=zoo:2181
-    depends_on:
-      - zoo
-      - kafka
-
   kafka-init-topics:
     image: confluentinc/cp-kafka:7.0.1
     depends_on:
